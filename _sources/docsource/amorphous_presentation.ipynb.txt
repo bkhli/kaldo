@@ -1,0 +1,245 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    },
+    "accelerator": "GPU",
+    "gpuClass": "standard"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": [
+        "This notebook can be run on Google Colab.\n",
+        "\n",
+        "[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/nanotheorygroup/kaldo/blob/master/docs/docsource/crystal_presentation.ipynb)\n",
+        "\n",
+        "In Colab, you can enable the GPU acceleration from `Edit` > `Notebook Settings` > `Accelerator` > `GPU`."
+      ],
+      "metadata": {
+        "id": "syFWKP6m_eoB"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Amorphous silicon tutorial\n"
+      ],
+      "metadata": {
+        "id": "JcTIeInI_kff"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## pip install $\\kappa$ALDo"
+      ],
+      "metadata": {
+        "id": "PEkjhpcF_z4G"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "%%capture\n",
+        "! pip install kaldo"
+      ],
+      "metadata": {
+        "id": "Py4sAQQe_0FG"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Fetch supplyment data remotely"
+      ],
+      "metadata": {
+        "id": "qcMNDVbc_1v2"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "%%capture\n",
+        "# Activate large file transfer in github\n",
+        "! git lfs install --skip-repo --skip-smudge\n",
+        "\n",
+        "# Git clone kALDo\n",
+        "! git clone https://github.com/nanotheorygroup/kaldo.git\n",
+        "\n",
+        "# Copy si-amorphous structure and force constant files\n",
+        "! cp -r /content/kaldo/kaldo/tests/si-amorphous ./\n",
+        "! rm -rf kaldo sample_data"
+      ],
+      "metadata": {
+        "id": "0sUJDDKoA727"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Thermal transport simulation for Amorphous-Silicon (a-Si)"
+      ],
+      "metadata": {
+        "id": "elAQwoOqABm3"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from kaldo.forceconstants import ForceConstants\n",
+        "\n",
+        "# Read amporphous silicon with eskm format\n",
+        "forceconstants = ForceConstants.from_folder(folder='si-amorphous', format='eskm')"
+      ],
+      "metadata": {
+        "id": "aako_THWABwd"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Create phonons object\n"
+      ],
+      "metadata": {
+        "id": "xr4BVk4MADDe"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from kaldo.phonons import Phonons\n",
+        "\n",
+        "# Create a phonon object\n",
+        "# is_classic flag can be true or false, as\n",
+        "# well as 0 (quantum) or 1 (classic)\n",
+        "phonons = Phonons (forceconstants=forceconstants,\n",
+        "                   is_classic=0,\n",
+        "                   temperature=300,\n",
+        "                   folder='si-amorphous',\n",
+        "                   third_bandwidth=0.5/4.136,\n",
+        "                   broadening_shape='triangle',\n",
+        "                   storage='numpy')"
+      ],
+      "metadata": {
+        "id": "I5rDTAerAEN3"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Access and visualize properties calculated during simulations"
+      ],
+      "metadata": {
+        "id": "A5Xe1oj3AFs3"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import matplotlib.pyplot as plt\n",
+        "plt.style.use('seaborn-v0_8')\n",
+        "\n",
+        "# Direct access to properties\n",
+        "# calculated during the simulation\n",
+        "frequency = phonons.frequency.flatten(order='C')\n",
+        "bandwidth = phonons.bandwidth.flatten(order='C')\n",
+        "\n",
+        "# Plot phonon bandwidth vs frequency\n",
+        "print('\\n')\n",
+        "plt.plot(frequency[3:],bandwidth[3:],'.',markersize=10,label= 'broadening shape: ' + str(phonons.broadening_shape))\n",
+        "plt.ylabel('$\\Gamma$ (THz)', fontsize=25, fontweight='bold')\n",
+        "plt.xlabel(\"$\\\\nu$ (THz)\", fontsize=25, fontweight='bold')\n",
+        "plt.ylim([bandwidth.min(), bandwidth.max()])\n",
+        "plt.legend(loc=2,frameon = False)\n",
+        "plt.grid()\n",
+        "plt.show()\n",
+        "\n",
+        "phase_space = phonons.phase_space.flatten(order='C')\n",
+        "\n",
+        "# Plot phase space vs frequency\n",
+        "print('\\n')\n",
+        "plt.figure()\n",
+        "plt.plot(frequency[3:], phase_space[3:], '.', markersize=10)\n",
+        "plt.ylabel (\"Phase space\", fontsize=25, fontweight='bold')\n",
+        "plt.xlabel(\"$\\\\nu$ (THz)\", fontsize=25, fontweight='bold')\n",
+        "plt.grid()\n",
+        "plt.show()\n"
+      ],
+      "metadata": {
+        "id": "olUsoHlRAG41"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Calculate and visualize $\\kappa_{per \\ mode}$ and $\\kappa_{cum}$"
+      ],
+      "metadata": {
+        "id": "jtiSfn6AAJqH"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from kaldo.conductivity import Conductivity\n",
+        "from kaldo.controllers import plotter\n",
+        "import numpy as np\n",
+        "\n",
+        "# Compute conductivity with per phonon mode basis using qhgk method\n",
+        "kappa_qhgk_per_mode = np.einsum('maa->m',1/3*Conductivity(phonons=phonons, method='qhgk',n_iterations=20).conductivity)\n",
+        "\n",
+        "# Compute cumulative conductivity by frequency with qhgk method\n",
+        "kappa_qhgk_cum_freq = plotter.cumulative_cond_cal(phonons.frequency,Conductivity(phonons=phonons, method='qhgk').conductivity,phonons.n_phonons)\n",
+        "\n",
+        "print('\\n')\n",
+        "\n",
+        "# Visualize the per mode conductivity vs frequency\n",
+        "plt.figure()\n",
+        "plt.plot(frequency[3:],kappa_qhgk_per_mode[3:],'.',label='QHGK',ms=8)\n",
+        "plt.xlabel (\"$\\\\nu$ (THz)\", fontsize=25, fontweight='bold')\n",
+        "plt.ylabel(r'$\\kappa(W/m/K)$', fontsize=25, fontweight='bold')\n",
+        "plt.legend(loc=1,frameon=False)\n",
+        "plt.grid()\n",
+        "plt.show()\n",
+        "\n",
+        "print('\\n')\n",
+        "\n",
+        "# Visualize the cumulative conductivity vs frequency\n",
+        "plt.figure()\n",
+        "plt.plot(frequency[3:],kappa_qhgk_cum_freq[3:],'.',label='QHGK',ms=8)\n",
+        "plt.xlabel (\"$\\\\nu$ (THz)\", fontsize=25, fontweight='bold')\n",
+        "plt.ylabel(r'$\\kappa_{cum}(W/m/K)$', fontsize=25, fontweight='bold')\n",
+        "plt.legend(loc=4,frameon=False)\n",
+        "plt.grid()\n",
+        "plt.show()\n",
+        "\n",
+        "# Please check out amorphous_silicon_Tersoff_LAMMPS in the example folder for more detail."
+      ],
+      "metadata": {
+        "id": "uVcoDXswAK-2"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
